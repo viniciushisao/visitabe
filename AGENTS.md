@@ -102,3 +102,9 @@ When someone proposes adding a new technology, ask:
 If there is no clear and measurable benefit today, do not add it.
 
 The simplest architecture that works is almost always the best architecture.
+
+## Authentication
+
+Before creating or modifying authentication, sessions, tokens, users, or protected routes, read [AUTHENTICATION.md](./AUTHENTICATION.md).
+
+All authentication changes must follow that document.

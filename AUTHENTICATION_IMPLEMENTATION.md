@@ -409,28 +409,6 @@ Acceptance checks:
 - Web deployment configuration does not require adding Redis, queues, workers, or a separate auth service.
 - Token storage guidance avoids local storage for long-lived refresh tokens.
 
-## Phase 8 - Future Account Linking
-
-Do not implement this for the first anonymous-auth release, but preserve the model for it.
-
-Future tasks:
-
-- Add `POST /v1/auth/link/google`.
-- Add `POST /v1/auth/link/apple`.
-- Add `POST /v1/auth/link/email`.
-- Validate provider proofs on the backend.
-- Attach verified provider identities to the current `user.id`.
-- Change `User.status` from `anonymous` to `registered`.
-- Add conflict handling when a provider identity already belongs to a different user.
-- Design account recovery and explicit merge flows before merging any users.
-
-Acceptance checks:
-
-- Linking never creates a second user for the currently authenticated anonymous account.
-- Existing clients, visits, actions, and other user-owned data remain attached to the same `user.id`.
-- Provider identity uniqueness uses provider subject, not email.
-- Account conflicts do not expose another user's data.
-
 ## Release Checklist
 
 - [ ] Production traffic uses HTTPS.
