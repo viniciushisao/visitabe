@@ -76,7 +76,17 @@ Status: Done
    npm run lint
    ```
 
-   Manual browser verification is still available by starting the API and opening `/docs`.
+   Local HTTP smoke verification completed:
+
+   ```sh
+   npx tsx -e "<temporary Fastify app listen/fetch smoke test>"
+   ```
+
+   Verified:
+   - [x] `GET /openapi.json` returns `200`
+   - [x] `GET /docs` returns `200`
+   - [x] generated document reports OpenAPI `3.0.3`
+   - [x] generated document includes 9 named reusable schemas
 
 ## Notes
 
