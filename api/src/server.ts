@@ -1,10 +1,17 @@
 import "dotenv/config";
 
 import { buildApp } from "./app.js";
+import { PrismaAuthRepository } from "./auth/auth-repository.js";
+import { AuthService } from "./auth/auth-service.js";
+import { TokenService } from "./auth/token-service.js";
 import { loadEnv } from "./config/env.js";
+import { getPrismaClient } from "./lib/prisma.js";
 
 const env = loadEnv();
-const app = buildApp();
+const tokenService = new TokenService(env.auth);
+const authRepository = new PrismaAuthRepository(getPrismaClient());
+const authService = new AuthService(authRepository, tokenService);
+const app = buildApp({ authService, tokenService });
 
 async function shutdown(signal: NodeJS.Signals): Promise<void> {
   app.log.info({ signal }, "Shutting down API server.");

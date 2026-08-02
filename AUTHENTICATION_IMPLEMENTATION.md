@@ -280,7 +280,9 @@ Acceptance checks:
 
 ## Phase 4 - HTTP Routes And Middleware
 
-Expose the MVP endpoints and protect future private routes.
+Status: Done.
+
+Exposed the MVP endpoints and protected future private routes.
 
 Tasks:
 
