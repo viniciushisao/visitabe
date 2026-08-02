@@ -213,7 +213,9 @@ Acceptance checks:
 
 ## Phase 2 - Token Service
 
-Implement token primitives before wiring HTTP endpoints.
+Status: Done.
+
+Implemented token primitives before wiring HTTP endpoints.
 
 Tasks:
 
