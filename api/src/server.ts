@@ -1,14 +1,9 @@
 import "dotenv/config";
 
 import { buildApp } from "./app.js";
+import { loadEnv } from "./config/env.js";
 
-const host = process.env.HOST ?? "127.0.0.1";
-const port = Number.parseInt(process.env.PORT ?? "3000", 10);
-
-if (Number.isNaN(port)) {
-  throw new Error("PORT must be a number.");
-}
-
+const env = loadEnv();
 const app = buildApp();
 
 async function shutdown(signal: NodeJS.Signals): Promise<void> {
@@ -25,7 +20,7 @@ process.on("SIGTERM", (signal) => {
 });
 
 try {
-  await app.listen({ host, port });
+  await app.listen({ host: env.host, port: env.port });
 } catch (error) {
   app.log.error(error);
   process.exit(1);
