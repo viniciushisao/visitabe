@@ -11,6 +11,7 @@ import { registerAuthRoutes } from "./auth/auth-routes.js";
 import type { AuthService } from "./auth/auth-service.js";
 import type { TokenService } from "./auth/token-service.js";
 import { registerAuthentication } from "./plugins/authentication.js";
+import { registerOpenApi } from "./plugins/openapi.js";
 
 export type BuildAppOptions = FastifyServerOptions & {
   authService?: AuthService;
@@ -101,6 +102,7 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   );
 
   void app.register(rateLimit, { global: false });
+  registerOpenApi(app);
 
   if (authService && tokenService) {
     void app.register(async (authApp) => {

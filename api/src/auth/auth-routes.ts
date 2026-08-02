@@ -38,6 +38,10 @@ export async function registerAuthRoutes(
         rateLimit: anonymousAuthRateLimit,
       },
       schema: {
+        tags: ["Auth"],
+        summary: "Create an anonymous session",
+        description:
+          "Creates an anonymous user and returns access and refresh tokens for the first app session.",
         body: anonymousAuthBodySchema,
         response: {
           201: anonymousAuthResponseSchema,
@@ -57,6 +61,10 @@ export async function registerAuthRoutes(
         rateLimit: refreshAuthRateLimit,
       },
       schema: {
+        tags: ["Auth"],
+        summary: "Refresh a session",
+        description:
+          "Rotates a refresh token and returns a new access token and refresh token.",
         body: refreshAuthBodySchema,
         response: {
           200: refreshAuthResponseSchema,
@@ -74,6 +82,11 @@ export async function registerAuthRoutes(
     {
       preHandler: app.authenticate,
       schema: {
+        tags: ["Auth"],
+        summary: "Read the current user",
+        description:
+          "Returns the authenticated user's public profile and linked identity providers.",
+        security: [{ bearerAuth: [] }],
         response: {
           200: currentUserResponseSchema,
           401: authErrorResponseSchema,
@@ -89,7 +102,16 @@ export async function registerAuthRoutes(
     {
       preHandler: app.authenticate,
       schema: {
+        tags: ["Auth"],
+        summary: "Log out the current session",
+        description:
+          "Revokes the authenticated session and its refresh tokens.",
+        security: [{ bearerAuth: [] }],
         response: {
+          204: {
+            type: "null",
+            description: "Session revoked.",
+          },
           401: authErrorResponseSchema,
           500: authErrorResponseSchema,
         },
