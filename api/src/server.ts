@@ -11,7 +11,11 @@ const env = loadEnv();
 const tokenService = new TokenService(env.auth);
 const authRepository = new PrismaAuthRepository(getPrismaClient());
 const authService = new AuthService(authRepository, tokenService);
-const app = buildApp({ authService, tokenService });
+const app = buildApp({
+  authService,
+  tokenService,
+  webCorsOrigins: env.web.corsOrigins,
+});
 
 async function shutdown(signal: NodeJS.Signals): Promise<void> {
   app.log.info({ signal }, "Shutting down API server.");

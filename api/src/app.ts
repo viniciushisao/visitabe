@@ -1,3 +1,4 @@
+import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
 import fastify, {
   type FastifyInstance,
@@ -14,10 +15,17 @@ import { registerAuthentication } from "./plugins/authentication.js";
 export type BuildAppOptions = FastifyServerOptions & {
   authService?: AuthService;
   tokenService?: TokenService;
+  webCorsOrigins?: readonly string[];
 };
 
 export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
-  const { authService, tokenService, logger, ...fastifyOptions } = options;
+  const {
+    authService,
+    tokenService,
+    logger,
+    webCorsOrigins,
+    ...fastifyOptions
+  } = options;
 
   if ((authService && !tokenService) || (!authService && tokenService)) {
     throw new Error("authService and tokenService must be provided together.");
@@ -33,6 +41,15 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
     },
     ...fastifyOptions,
   });
+
+  if (webCorsOrigins?.length) {
+    void app.register(cors, {
+      origin: [...webCorsOrigins],
+      credentials: true,
+      methods: ["GET", "POST", "OPTIONS"],
+      allowedHeaders: ["authorization", "content-type"],
+    });
+  }
 
   app.setErrorHandler(
     (

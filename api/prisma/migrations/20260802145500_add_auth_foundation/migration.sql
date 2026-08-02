@@ -8,7 +8,7 @@ CREATE TYPE "UserStatus" AS ENUM ('anonymous', 'registered', 'disabled');
 CREATE TYPE "IdentityProvider" AS ENUM ('google', 'apple', 'email');
 
 -- CreateEnum
-CREATE TYPE "AuthPlatform" AS ENUM ('ios', 'android');
+CREATE TYPE "AuthPlatform" AS ENUM ('web');
 
 -- CreateTable
 CREATE TABLE "users" (
@@ -38,7 +38,7 @@ CREATE TABLE "auth_identities" (
 CREATE TABLE "auth_sessions" (
     "id" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
-    "installation_id" TEXT NOT NULL,
+    "client_instance_id" TEXT NOT NULL,
     "platform" "AuthPlatform" NOT NULL,
     "app_version" TEXT NOT NULL,
     "token_family_id" TEXT NOT NULL,

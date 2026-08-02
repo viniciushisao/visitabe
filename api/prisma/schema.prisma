@@ -20,8 +20,7 @@ enum IdentityProvider {
 }
 
 enum AuthPlatform {
-  ios
-  android
+  web
 }
 
 model User {
@@ -54,17 +53,17 @@ model AuthIdentity {
 }
 
 model AuthSession {
-  id             String       @id
-  userId         String       @map("user_id")
-  installationId String       @map("installation_id")
-  platform       AuthPlatform
-  appVersion     String       @map("app_version")
-  tokenFamilyId  String       @map("token_family_id")
-  expiresAt      DateTime     @map("expires_at")
-  lastUsedAt     DateTime?    @map("last_used_at")
-  revokedAt      DateTime?    @map("revoked_at")
-  createdAt      DateTime     @default(now()) @map("created_at")
-  updatedAt      DateTime     @updatedAt @map("updated_at")
+  id               String       @id
+  userId           String       @map("user_id")
+  clientInstanceId String       @map("client_instance_id")
+  platform         AuthPlatform
+  appVersion       String       @map("app_version")
+  tokenFamilyId    String       @map("token_family_id")
+  expiresAt        DateTime     @map("expires_at")
+  lastUsedAt       DateTime?    @map("last_used_at")
+  revokedAt        DateTime?    @map("revoked_at")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
 
   user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   refreshTokens AuthRefreshToken[]

@@ -1,14 +1,14 @@
 # Visita API - Authentication Implementation Plan
 
 > Source guide: [AUTHENTICATION.md](./AUTHENTICATION.md)  
-> Scope: Anonymous authentication for the MVP, with a path to future account linking  
+> Scope: Anonymous authentication for the MVP web/API side, with a path to future account linking  
 > Status: Implementation plan
 
 ## Goal
 
 Ship anonymous authentication without adding unnecessary infrastructure.
 
-The first release should let a mobile installation create a real internal user, keep a session alive with rotating refresh tokens, protect private API routes, and preserve the same `user.id` when Google, Apple, email, or another identity is linked later.
+The first release should let a web/API client create a real internal user, keep a session alive with rotating refresh tokens, protect private API routes, and preserve the same `user.id` when Google, Apple, email, or another identity is linked later.
 
 ## Constraints
 
@@ -38,6 +38,7 @@ Add only small application dependencies that solve immediate auth needs:
 
 - `jose` for signing and verifying JWT access tokens with explicit issuer, audience, expiration, and algorithm checks.
 - `@fastify/rate-limit` for simple in-process rate limiting while the API runs as one instance.
+- `@fastify/cors` for explicit web-origin allowlisting.
 
 Use Node's built-in `crypto` module for refresh-token generation and hashing. Do not add bcrypt, argon2, Redis-backed rate limiting, or a generic auth framework for the anonymous-token MVP.
 
@@ -93,12 +94,13 @@ Required env vars:
 
 ```env
 AUTH_ISSUER=https://api.visita.app
-AUTH_AUDIENCE=visita-mobile
+AUTH_AUDIENCE=visita-web
 AUTH_ACCESS_TOKEN_TTL_SECONDS=900
 AUTH_REFRESH_TOKEN_TTL_SECONDS=2592000
 AUTH_JWT_ALGORITHM=HS256
 AUTH_REFRESH_TOKEN_PEPPER=
 JWT_SECRET=
+WEB_CORS_ORIGINS=https://app.visita.app
 ```
 
 Acceptance checks:
@@ -119,7 +121,7 @@ Tasks:
 - Add Prisma enums:
   - `UserStatus`: `anonymous`, `registered`, `disabled`
   - `IdentityProvider`: `google`, `apple`, `email`
-  - `AuthPlatform`: `ios`, `android`
+  - `AuthPlatform`: `web`
 - Add `User`.
 - Add `AuthIdentity`.
 - Add `AuthSession`.
@@ -160,17 +162,17 @@ model AuthIdentity {
 }
 
 model AuthSession {
-  id             String       @id
-  userId         String       @map("user_id")
-  installationId String       @map("installation_id")
-  platform       AuthPlatform
-  appVersion     String       @map("app_version")
-  tokenFamilyId  String       @map("token_family_id")
-  expiresAt      DateTime     @map("expires_at")
-  lastUsedAt     DateTime?    @map("last_used_at")
-  revokedAt      DateTime?    @map("revoked_at")
-  createdAt      DateTime     @default(now()) @map("created_at")
-  updatedAt      DateTime     @updatedAt @map("updated_at")
+  id               String       @id
+  userId           String       @map("user_id")
+  clientInstanceId String       @map("client_instance_id")
+  platform         AuthPlatform
+  appVersion       String       @map("app_version")
+  tokenFamilyId    String       @map("token_family_id")
+  expiresAt        DateTime     @map("expires_at")
+  lastUsedAt       DateTime?    @map("last_used_at")
+  revokedAt        DateTime?    @map("revoked_at")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
 
   user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   refreshTokens AuthRefreshToken[]
@@ -248,7 +250,7 @@ Implemented auth behavior as service methods that can be exercised directly and 
 Tasks:
 
 - `createAnonymousSession(input)`
-  - Validate `installationId`, `platform`, and `appVersion`.
+  - Validate `clientInstanceId`, `platform`, and `appVersion`.
   - Create `User`.
   - Create `AuthSession`.
   - Create the first `AuthRefreshToken`.
@@ -377,28 +379,35 @@ Acceptance checks:
 - `npm run typecheck` passes.
 - Security-sensitive behavior is covered through Fastify `app.inject` tests where possible.
 
-## Phase 7 - Flutter Client Integration
+## Phase 7 - Web API Integration
 
-Do this once the backend endpoints are stable enough for the app to consume.
+Status: Done.
+
+Kept the remaining authentication work in the TypeScript/Node web/API layer. Client work outside this API is intentionally out of scope for this plan.
 
 Tasks:
 
-- Generate and persist a random installation UUID on first launch.
-- Call `/v1/auth/anonymous` only when no refresh token exists.
-- Store access and refresh tokens in OS-backed secure storage.
-- Attach the access token to protected API requests.
-- Refresh when the access token is expired or close to expiring.
-- Retry the original request once after successful refresh.
-- Coalesce concurrent refresh attempts into one in-flight refresh request.
-- Clear local tokens on logout or unrecoverable refresh failure.
+- Kept route schemas current for:
+  - `POST /v1/auth/anonymous`
+  - `POST /v1/auth/refresh`
+  - `GET /v1/auth/me`
+  - `POST /v1/auth/logout`
+- Added TypeScript helpers for the expected bearer-token request flow.
+- Ensured every current private web/API endpoint uses the `authenticate` middleware.
+- Added configurable CORS origin allowlisting with `WEB_CORS_ORIGINS`.
+- Documented the expected browser-side storage decision before any web frontend stores tokens.
+- Changed the anonymous auth request contract to web-only:
+  - `clientInstanceId`
+  - `platform: "web"`
+  - `appVersion`
 
 Acceptance checks:
 
-- Reinstalling the app creates a new anonymous account unless secure storage survives the reinstall.
-- Closing and reopening the app keeps the session if the refresh token is valid.
-- Expired access tokens are refreshed without user-visible friction.
-- Failed refresh clears local auth state and starts a new anonymous flow deliberately.
-- Tokens are not stored in SharedPreferences, logs, analytics, crash reports, or plain files.
+- Auth route schemas match the implemented TypeScript handlers.
+- Protected web/API routes reject unauthenticated requests.
+- Documented bearer-token helpers work against the Fastify API.
+- Web deployment configuration does not require adding Redis, queues, workers, or a separate auth service.
+- Token storage guidance avoids local storage for long-lived refresh tokens.
 
 ## Phase 8 - Future Account Linking
 
@@ -435,7 +444,7 @@ Acceptance checks:
 - [ ] Auth endpoints and OpenAI-backed endpoints are rate-limited.
 - [ ] Logs mask tokens and authorization headers.
 - [ ] Every protected domain query is scoped by `request.user.userId`.
-- [ ] Flutter stores tokens in Keychain or Keystore-backed secure storage.
+- [ ] Web token storage avoids local storage for long-lived refresh tokens.
 - [ ] `npm test` passes.
 - [ ] `npm run typecheck` passes.
 
@@ -449,4 +458,4 @@ Acceptance checks:
 - Hardware device fingerprinting
 - Automatic account merging
 - Permanent access tokens
-- API keys in the mobile app
+- Browser-exposed API keys

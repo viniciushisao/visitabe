@@ -5,6 +5,9 @@ export type ApiEnv = {
   host: string;
   port: number;
   logLevel: string;
+  web: {
+    corsOrigins: string[];
+  };
   auth: {
     issuer: string;
     audience: string;
@@ -32,11 +35,20 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): ApiEnv {
     requireHighEntropySecret("AUTH_REFRESH_TOKEN_PEPPER", refreshTokenPepper);
   }
 
+  const webCorsOrigins = parseWebCorsOrigins(source.WEB_CORS_ORIGINS ?? "");
+
+  if (nodeEnv !== "development" && webCorsOrigins.length === 0) {
+    throw new Error("WEB_CORS_ORIGINS is required outside development.");
+  }
+
   return {
     nodeEnv,
     host: source.HOST?.trim() || "127.0.0.1",
     port,
     logLevel: source.LOG_LEVEL?.trim() || "info",
+    web: {
+      corsOrigins: webCorsOrigins,
+    },
     auth: {
       issuer: parseIssuer(required(source, "AUTH_ISSUER")),
       audience: required(source, "AUTH_AUDIENCE"),
@@ -91,6 +103,22 @@ function parseIssuer(value: string): string {
   } catch {
     throw new Error("AUTH_ISSUER must be a valid URL.");
   }
+}
+
+function parseWebCorsOrigins(value: string): string[] {
+  const origins = value
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+    .map((origin) => {
+      try {
+        return new URL(origin).origin;
+      } catch {
+        throw new Error("WEB_CORS_ORIGINS must contain valid URL origins.");
+      }
+    });
+
+  return [...new Set(origins)];
 }
 
 function parseJwtAlgorithm(value: string): AuthJwtAlgorithm {

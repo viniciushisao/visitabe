@@ -6,7 +6,7 @@ import { TokenService } from "./token-service.js";
 
 const baseAuthConfig = {
   issuer: "https://api.visita.test",
-  audience: "visita-mobile",
+  audience: "visita-web",
   accessTokenTtlSeconds: 900,
   refreshTokenTtlSeconds: 2_592_000,
   jwtAlgorithm: "HS256",

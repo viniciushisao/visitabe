@@ -47,7 +47,7 @@ export class AuthService {
       refreshTokenId: refreshToken.tokenId,
       refreshTokenHash,
       tokenFamilyId,
-      installationId: normalizedInput.installationId,
+      clientInstanceId: normalizedInput.clientInstanceId,
       platform: normalizedInput.platform,
       appVersion: normalizedInput.appVersion,
       expiresAt,
@@ -178,12 +178,12 @@ export class AuthService {
 function validateAnonymousSessionInput(
   input: CreateAnonymousSessionInput,
 ): CreateAnonymousSessionInput {
-  if (!isUuid(input.installationId)) {
-    throw new AuthError("INVALID_REQUEST", "installationId must be a UUID.");
+  if (!isUuid(input.clientInstanceId)) {
+    throw new AuthError("INVALID_REQUEST", "clientInstanceId must be a UUID.");
   }
 
   if (!isAuthPlatform(input.platform)) {
-    throw new AuthError("INVALID_REQUEST", "platform must be ios or android.");
+    throw new AuthError("INVALID_REQUEST", "platform must be web.");
   }
 
   const appVersion = input.appVersion.trim();
@@ -193,7 +193,7 @@ function validateAnonymousSessionInput(
   }
 
   return {
-    installationId: input.installationId,
+    clientInstanceId: input.clientInstanceId,
     platform: input.platform,
     appVersion,
   };
@@ -228,5 +228,5 @@ function isUuid(value: string): boolean {
 }
 
 function isAuthPlatform(value: string): value is AuthPlatform {
-  return value === "ios" || value === "android";
+  return value === "web";
 }

@@ -17,10 +17,14 @@ import type {
   CurrentUserRecord,
 } from "./auth-types.js";
 import { TokenService } from "./token-service.js";
+import {
+  createAnonymousWebSessionRequest,
+  createBearerAuthorizationHeader,
+} from "./web-auth-flow.js";
 
 const authConfig = {
   issuer: "https://api.visita.test",
-  audience: "visita-mobile",
+  audience: "visita-web",
   accessTokenTtlSeconds: 900,
   refreshTokenTtlSeconds: 2_592_000,
   jwtAlgorithm: "HS256",
@@ -37,11 +41,10 @@ describe("auth routes", () => {
     const anonymousResponse = await app.inject({
       method: "POST",
       url: "/v1/auth/anonymous",
-      payload: {
-        installationId: "550e8400-e29b-41d4-a716-446655440000",
-        platform: "android",
+      payload: createAnonymousWebSessionRequest({
+        clientInstanceId: "550e8400-e29b-41d4-a716-446655440000",
         appVersion: "1.0.0",
-      },
+      }),
     });
     const anonymousBody = anonymousResponse.json<AnonymousAuthResponse>();
 
@@ -53,9 +56,9 @@ describe("auth routes", () => {
     const meResponse = await app.inject({
       method: "GET",
       url: "/v1/auth/me",
-      headers: {
-        authorization: `Bearer ${anonymousBody.data.tokens.accessToken}`,
-      },
+      headers: createBearerAuthorizationHeader(
+        anonymousBody.data.tokens.accessToken,
+      ),
     });
     const meBody = meResponse.json<CurrentUserResponse>();
 
@@ -191,8 +194,8 @@ describe("auth routes", () => {
       method: "POST",
       url: "/v1/auth/anonymous",
       payload: {
-        installationId: "550e8400-e29b-41d4-a716-446655440000",
-        platform: "ios",
+        clientInstanceId: "550e8400-e29b-41d4-a716-446655440000",
+        platform: "web",
         appVersion: "1.0.0",
       },
     });
@@ -223,8 +226,8 @@ describe("auth routes", () => {
       method: "POST",
       url: "/v1/auth/anonymous",
       payload: {
-        installationId: "550e8400-e29b-41d4-a716-446655440000",
-        platform: "ios",
+        clientInstanceId: "550e8400-e29b-41d4-a716-446655440000",
+        platform: "web",
         appVersion: "1.0.0",
       },
     });
@@ -278,8 +281,8 @@ describe("auth routes", () => {
         method: "POST",
         url: "/v1/auth/anonymous",
         payload: {
-          installationId: "550e8400-e29b-41d4-a716-446655440000",
-          platform: "android",
+          clientInstanceId: "550e8400-e29b-41d4-a716-446655440000",
+          platform: "web",
           appVersion: "1.0.0",
         },
       });
@@ -291,8 +294,8 @@ describe("auth routes", () => {
       method: "POST",
       url: "/v1/auth/anonymous",
       payload: {
-        installationId: "550e8400-e29b-41d4-a716-446655440000",
-        platform: "android",
+        clientInstanceId: "550e8400-e29b-41d4-a716-446655440000",
+        platform: "web",
         appVersion: "1.0.0",
       },
     });
@@ -342,8 +345,8 @@ describe("auth routes", () => {
       method: "POST",
       url: "/v1/auth/anonymous",
       payload: {
-        installationId: "550e8400-e29b-41d4-a716-446655440000",
-        platform: "android",
+        clientInstanceId: "550e8400-e29b-41d4-a716-446655440000",
+        platform: "web",
         appVersion: "1.0.0",
       },
     });

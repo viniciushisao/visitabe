@@ -44,11 +44,11 @@ const authTokensSchema = {
 
 export const anonymousAuthBodySchema = {
   type: "object",
-  required: ["installationId", "platform", "appVersion"],
+  required: ["clientInstanceId", "platform", "appVersion"],
   additionalProperties: false,
   properties: {
-    installationId: { type: "string" },
-    platform: { type: "string", enum: ["android", "ios"] },
+    clientInstanceId: { type: "string" },
+    platform: { type: "string", enum: ["web"] },
     appVersion: { type: "string", minLength: 1, maxLength: 100 },
   },
 } as const;

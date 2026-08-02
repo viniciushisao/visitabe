@@ -18,7 +18,7 @@ import { TokenService } from "./token-service.js";
 
 const authConfig = {
   issuer: "https://api.visita.test",
-  audience: "visita-mobile",
+  audience: "visita-web",
   accessTokenTtlSeconds: 900,
   refreshTokenTtlSeconds: 2_592_000,
   jwtAlgorithm: "HS256",
@@ -36,8 +36,8 @@ describe("AuthService", () => {
     const service = new AuthService(repository, tokenService, () => now);
 
     const result = await service.createAnonymousSession({
-      installationId: "550e8400-e29b-41d4-a716-446655440000",
-      platform: "android",
+      clientInstanceId: "550e8400-e29b-41d4-a716-446655440000",
+      platform: "web",
       appVersion: "1.0.0",
     });
 
@@ -67,8 +67,8 @@ describe("AuthService", () => {
 
     await expect(
       service.createAnonymousSession({
-        installationId: "not-a-uuid",
-        platform: "android",
+        clientInstanceId: "not-a-uuid",
+        platform: "web",
         appVersion: "1.0.0",
       }),
     ).rejects.toMatchObject({
@@ -82,8 +82,8 @@ describe("AuthService", () => {
     let currentNow = now;
     const service = new AuthService(repository, tokenService, () => currentNow);
     const created = await service.createAnonymousSession({
-      installationId: "550e8400-e29b-41d4-a716-446655440000",
-      platform: "ios",
+      clientInstanceId: "550e8400-e29b-41d4-a716-446655440000",
+      platform: "web",
       appVersion: "1.0.0",
     });
 
@@ -114,8 +114,8 @@ describe("AuthService", () => {
     let currentNow = now;
     const service = new AuthService(repository, tokenService, () => currentNow);
     const created = await service.createAnonymousSession({
-      installationId: "550e8400-e29b-41d4-a716-446655440000",
-      platform: "ios",
+      clientInstanceId: "550e8400-e29b-41d4-a716-446655440000",
+      platform: "web",
       appVersion: "1.0.0",
     });
 
@@ -143,8 +143,8 @@ describe("AuthService", () => {
     const tokenService = new TokenService(authConfig);
     const service = new AuthService(repository, tokenService, () => now);
     const created = await service.createAnonymousSession({
-      installationId: "550e8400-e29b-41d4-a716-446655440000",
-      platform: "android",
+      clientInstanceId: "550e8400-e29b-41d4-a716-446655440000",
+      platform: "web",
       appVersion: "1.0.0",
     });
     const accessToken = await tokenService.verifyAccessToken(
@@ -169,8 +169,8 @@ describe("AuthService", () => {
       () => now,
     );
     const created = await service.createAnonymousSession({
-      installationId: "550e8400-e29b-41d4-a716-446655440000",
-      platform: "ios",
+      clientInstanceId: "550e8400-e29b-41d4-a716-446655440000",
+      platform: "web",
       appVersion: "1.0.0",
     });
 

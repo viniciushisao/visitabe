@@ -1,4 +1,4 @@
-export type AuthPlatform = "ios" | "android";
+export type AuthPlatform = "web";
 export type IdentityProvider = "google" | "apple" | "email";
 export type UserStatus = "anonymous" | "registered" | "disabled";
 
@@ -8,7 +8,7 @@ export type AuthenticatedUser = {
 };
 
 export type CreateAnonymousSessionInput = {
-  installationId: string;
+  clientInstanceId: string;
   platform: AuthPlatform;
   appVersion: string;
 };

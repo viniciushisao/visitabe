@@ -15,7 +15,7 @@ export type CreateAnonymousSessionRecordInput = {
   refreshTokenId: string;
   refreshTokenHash: string;
   tokenFamilyId: string;
-  installationId: string;
+  clientInstanceId: string;
   platform: AuthPlatform;
   appVersion: string;
   expiresAt: Date;
@@ -70,7 +70,7 @@ export class PrismaAuthRepository implements AuthRepository {
         data: {
           id: input.sessionId,
           userId: input.userId,
-          installationId: input.installationId,
+          clientInstanceId: input.clientInstanceId,
           platform: input.platform,
           appVersion: input.appVersion,
           tokenFamilyId: input.tokenFamilyId,
