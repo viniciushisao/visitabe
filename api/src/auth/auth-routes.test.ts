@@ -1,7 +1,9 @@
+import fastify from "fastify";
 import { describe, expect, it } from "vitest";
 
 import { buildApp } from "../app.js";
 import type { ApiEnv } from "../config/env.js";
+import { registerAuthentication } from "../plugins/authentication.js";
 import type {
   AuthRepository,
   CreateAnonymousSessionRecordInput,
@@ -129,6 +131,60 @@ describe("auth routes", () => {
     await app.close();
   });
 
+  it("rejects protected requests with wrong-issuer access tokens", async () => {
+    const { app } = buildTestApp();
+    const wrongIssuerTokenService = new TokenService({
+      ...authConfig,
+      issuer: "https://wrong-issuer.visita.test",
+    });
+    const token = await wrongIssuerTokenService.createAccessToken(
+      { userId: "usr_wrong_issuer", sessionId: "ses_wrong_issuer" },
+      testNow,
+    );
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/v1/auth/me",
+      headers: {
+        authorization: `Bearer ${token.accessToken}`,
+      },
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.json()).toMatchObject({
+      error: { code: "UNAUTHORIZED" },
+    });
+
+    await app.close();
+  });
+
+  it("rejects protected requests with wrong-audience access tokens", async () => {
+    const { app } = buildTestApp();
+    const wrongAudienceTokenService = new TokenService({
+      ...authConfig,
+      audience: "wrong-audience",
+    });
+    const token = await wrongAudienceTokenService.createAccessToken(
+      { userId: "usr_wrong_audience", sessionId: "ses_wrong_audience" },
+      testNow,
+    );
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/v1/auth/me",
+      headers: {
+        authorization: `Bearer ${token.accessToken}`,
+      },
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.json()).toMatchObject({
+      error: { code: "UNAUTHORIZED" },
+    });
+
+    await app.close();
+  });
+
   it("refreshes a session and rotates the refresh token", async () => {
     const { app } = buildTestApp();
     const anonymousResponse = await app.inject({
@@ -157,6 +213,59 @@ describe("auth routes", () => {
     expect(refreshBody.data.refreshToken).not.toBe(
       anonymousBody.data.tokens.refreshToken,
     );
+
+    await app.close();
+  });
+
+  it("rejects reused refresh tokens and revokes the session family", async () => {
+    const { app } = buildTestApp();
+    const anonymousResponse = await app.inject({
+      method: "POST",
+      url: "/v1/auth/anonymous",
+      payload: {
+        installationId: "550e8400-e29b-41d4-a716-446655440000",
+        platform: "ios",
+        appVersion: "1.0.0",
+      },
+    });
+    const anonymousBody = anonymousResponse.json<AnonymousAuthResponse>();
+
+    const firstRefreshResponse = await app.inject({
+      method: "POST",
+      url: "/v1/auth/refresh",
+      payload: {
+        refreshToken: anonymousBody.data.tokens.refreshToken,
+      },
+    });
+    const firstRefreshBody = firstRefreshResponse.json<RefreshAuthResponse>();
+
+    expect(firstRefreshResponse.statusCode).toBe(200);
+
+    const reusedRefreshResponse = await app.inject({
+      method: "POST",
+      url: "/v1/auth/refresh",
+      payload: {
+        refreshToken: anonymousBody.data.tokens.refreshToken,
+      },
+    });
+
+    expect(reusedRefreshResponse.statusCode).toBe(401);
+    expect(reusedRefreshResponse.json()).toMatchObject({
+      error: { code: "INVALID_REFRESH_TOKEN" },
+    });
+
+    const familyRevokedResponse = await app.inject({
+      method: "POST",
+      url: "/v1/auth/refresh",
+      payload: {
+        refreshToken: firstRefreshBody.data.refreshToken,
+      },
+    });
+
+    expect(familyRevokedResponse.statusCode).toBe(401);
+    expect(familyRevokedResponse.json()).toMatchObject({
+      error: { code: "SESSION_REVOKED" },
+    });
 
     await app.close();
   });
@@ -261,6 +370,50 @@ describe("auth routes", () => {
     expect(refreshResponse.statusCode).toBe(401);
     expect(refreshResponse.json()).toMatchObject({
       error: { code: "SESSION_REVOKED" },
+    });
+
+    await app.close();
+  });
+
+  it("scopes protected route behavior to request.user.userId", async () => {
+    const tokenService = new TokenService(authConfig);
+    const app = fastify({ logger: false });
+
+    await registerAuthentication(app, tokenService);
+    app.post<{
+      Body: { userId: string };
+    }>(
+      "/protected-resource",
+      { preHandler: app.authenticate },
+      async (request) => ({
+        trustedUserId: request.user.userId,
+        ignoredBodyUserId: request.body.userId,
+      }),
+    );
+
+    const token = await tokenService.createAccessToken(
+      {
+        userId: "usr_trusted",
+        sessionId: "ses_trusted",
+      },
+      testNow,
+    );
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/protected-resource",
+      headers: {
+        authorization: `Bearer ${token.accessToken}`,
+      },
+      payload: {
+        userId: "usr_attacker_supplied",
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      trustedUserId: "usr_trusted",
+      ignoredBodyUserId: "usr_attacker_supplied",
     });
 
     await app.close();

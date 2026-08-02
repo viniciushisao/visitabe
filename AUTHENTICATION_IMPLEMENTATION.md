@@ -345,7 +345,9 @@ Acceptance checks:
 
 ## Phase 6 - Test Coverage
 
-Add focused tests at the HTTP boundary, with smaller unit tests for token utilities.
+Status: Done.
+
+Added focused tests at the HTTP boundary, with smaller unit tests for token utilities.
 
 Minimum HTTP tests:
 
