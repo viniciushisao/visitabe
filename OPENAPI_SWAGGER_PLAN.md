@@ -40,11 +40,11 @@ Status: Done
    - [x] `security: [{ bearerAuth: [] }]` for protected routes
    - [x] an explicit success response for `POST /v1/auth/logout`, such as `204`, if that is the intended behavior
 
-5. [ ] Optionally refactor schemas in `api/src/auth/auth-schemas.ts`.
+5. [x] Refactor schemas in `api/src/auth/auth-schemas.ts`.
 
    The current inline JSON schemas are enough for OpenAPI generation, but Swagger UI renders reusable models better when schemas are registered with `$id` and referenced with `$ref`.
 
-   Deferred because the current inline schemas generate a valid OpenAPI document, and `$ref` model extraction is a nice-to-have presentation improvement rather than required MVP behavior.
+   Completed by registering named auth schemas with `$id`, using `$ref` from route request and response schemas, and preserving schema names in generated OpenAPI components.
 
 6. [x] Add tests.
 
@@ -73,6 +73,7 @@ Status: Done
    ```sh
    npm run typecheck
    npm run test
+   npm run lint
    ```
 
    Manual browser verification is still available by starting the API and opening `/docs`.

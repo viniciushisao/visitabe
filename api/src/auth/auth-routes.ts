@@ -1,14 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 
 import { AuthController } from "./auth-controller.js";
-import {
-  anonymousAuthBodySchema,
-  anonymousAuthResponseSchema,
-  authErrorResponseSchema,
-  currentUserResponseSchema,
-  refreshAuthBodySchema,
-  refreshAuthResponseSchema,
-} from "./auth-schemas.js";
+import { authSchemaRefs, registerAuthSchemas } from "./auth-schemas.js";
 import type { AuthService } from "./auth-service.js";
 
 const anonymousAuthRateLimit = {
@@ -30,6 +23,7 @@ export async function registerAuthRoutes(
   authService: AuthService,
 ): Promise<void> {
   const controller = new AuthController(authService);
+  registerAuthSchemas(app);
 
   app.post(
     "/v1/auth/anonymous",
@@ -42,12 +36,12 @@ export async function registerAuthRoutes(
         summary: "Create an anonymous session",
         description:
           "Creates an anonymous user and returns access and refresh tokens for the first app session.",
-        body: anonymousAuthBodySchema,
+        body: authSchemaRefs.anonymousAuthBody,
         response: {
-          201: anonymousAuthResponseSchema,
-          400: authErrorResponseSchema,
-          429: authErrorResponseSchema,
-          500: authErrorResponseSchema,
+          201: authSchemaRefs.anonymousAuthResponse,
+          400: authSchemaRefs.authErrorResponse,
+          429: authSchemaRefs.authErrorResponse,
+          500: authSchemaRefs.authErrorResponse,
         },
       },
     },
@@ -65,12 +59,12 @@ export async function registerAuthRoutes(
         summary: "Refresh a session",
         description:
           "Rotates a refresh token and returns a new access token and refresh token.",
-        body: refreshAuthBodySchema,
+        body: authSchemaRefs.refreshAuthBody,
         response: {
-          200: refreshAuthResponseSchema,
-          401: authErrorResponseSchema,
-          429: authErrorResponseSchema,
-          500: authErrorResponseSchema,
+          200: authSchemaRefs.refreshAuthResponse,
+          401: authSchemaRefs.authErrorResponse,
+          429: authSchemaRefs.authErrorResponse,
+          500: authSchemaRefs.authErrorResponse,
         },
       },
     },
@@ -88,9 +82,9 @@ export async function registerAuthRoutes(
           "Returns the authenticated user's public profile and linked identity providers.",
         security: [{ bearerAuth: [] }],
         response: {
-          200: currentUserResponseSchema,
-          401: authErrorResponseSchema,
-          500: authErrorResponseSchema,
+          200: authSchemaRefs.currentUserResponse,
+          401: authSchemaRefs.authErrorResponse,
+          500: authSchemaRefs.authErrorResponse,
         },
       },
     },
@@ -112,8 +106,8 @@ export async function registerAuthRoutes(
             type: "null",
             description: "Session revoked.",
           },
-          401: authErrorResponseSchema,
-          500: authErrorResponseSchema,
+          401: authSchemaRefs.authErrorResponse,
+          500: authSchemaRefs.authErrorResponse,
         },
       },
     },

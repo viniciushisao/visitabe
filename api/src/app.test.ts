@@ -67,6 +67,29 @@ describe("buildApp", () => {
     expect(openApi.paths).toHaveProperty("/v1/auth/refresh");
     expect(openApi.paths).toHaveProperty("/v1/auth/me");
     expect(openApi.paths).toHaveProperty("/v1/auth/logout");
+    expect(Object.keys(openApi.components.schemas)).toEqual(
+      expect.arrayContaining([
+        "AnonymousAuthBody",
+        "AnonymousAuthResponse",
+        "AuthErrorResponse",
+        "AuthTokens",
+        "AuthUser",
+        "CurrentUser",
+        "CurrentUserResponse",
+        "RefreshAuthBody",
+        "RefreshAuthResponse",
+      ]),
+    );
+    expect(
+      openApi.paths["/v1/auth/anonymous"]?.post?.requestBody?.content?.[
+        "application/json"
+      ]?.schema,
+    ).toEqual({ $ref: "#/components/schemas/AnonymousAuthBody" });
+    expect(
+      openApi.paths["/v1/auth/anonymous"]?.post?.responses?.["201"]?.content?.[
+        "application/json"
+      ]?.schema,
+    ).toEqual({ $ref: "#/components/schemas/AnonymousAuthResponse" });
     expect(openApi.paths["/v1/auth/me"]?.get?.security).toEqual([
       { bearerAuth: [] },
     ]);
@@ -143,6 +166,7 @@ type OpenApiDocument = {
     title: string;
   };
   components: {
+    schemas: Record<string, unknown>;
     securitySchemes: Record<string, unknown>;
   };
   paths: Record<
@@ -150,6 +174,25 @@ type OpenApiDocument = {
     Record<
       string,
       {
+        requestBody?: {
+          content: Record<
+            string,
+            {
+              schema: unknown;
+            }
+          >;
+        };
+        responses: Record<
+          string,
+          {
+            content?: Record<
+              string,
+              {
+                schema: unknown;
+              }
+            >;
+          }
+        >;
         security?: Array<Record<string, string[]>>;
       }
     >

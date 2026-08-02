@@ -31,6 +31,11 @@ export function registerOpenApi(app: FastifyInstance): void {
         },
       },
     },
+    refResolver: {
+      buildLocalReference(json, _baseUri, _fragment, index) {
+        return typeof json.$id === "string" ? json.$id : `def-${index}`;
+      },
+    },
   });
 
   app.get(

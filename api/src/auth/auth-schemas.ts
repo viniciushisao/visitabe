@@ -1,4 +1,7 @@
+import type { FastifyInstance } from "fastify";
+
 export const authErrorResponseSchema = {
+  $id: "AuthErrorResponse",
   type: "object",
   required: ["error"],
   additionalProperties: false,
@@ -16,6 +19,7 @@ export const authErrorResponseSchema = {
 } as const;
 
 const authUserSchema = {
+  $id: "AuthUser",
   type: "object",
   required: ["id", "status"],
   additionalProperties: false,
@@ -26,6 +30,7 @@ const authUserSchema = {
 } as const;
 
 const authTokensSchema = {
+  $id: "AuthTokens",
   type: "object",
   required: [
     "accessToken",
@@ -43,6 +48,7 @@ const authTokensSchema = {
 } as const;
 
 export const anonymousAuthBodySchema = {
+  $id: "AnonymousAuthBody",
   type: "object",
   required: ["clientInstanceId", "platform", "appVersion"],
   additionalProperties: false,
@@ -54,6 +60,7 @@ export const anonymousAuthBodySchema = {
 } as const;
 
 export const refreshAuthBodySchema = {
+  $id: "RefreshAuthBody",
   type: "object",
   required: ["refreshToken"],
   additionalProperties: false,
@@ -63,6 +70,7 @@ export const refreshAuthBodySchema = {
 } as const;
 
 export const anonymousAuthResponseSchema = {
+  $id: "AnonymousAuthResponse",
   type: "object",
   required: ["data"],
   additionalProperties: false,
@@ -72,53 +80,79 @@ export const anonymousAuthResponseSchema = {
       required: ["user", "tokens"],
       additionalProperties: false,
       properties: {
-        user: authUserSchema,
-        tokens: authTokensSchema,
+        user: { $ref: "AuthUser#" },
+        tokens: { $ref: "AuthTokens#" },
       },
     },
   },
 } as const;
 
 export const refreshAuthResponseSchema = {
+  $id: "RefreshAuthResponse",
   type: "object",
   required: ["data"],
   additionalProperties: false,
   properties: {
     data: {
-      type: "object",
-      required: [
-        "accessToken",
-        "accessTokenExpiresIn",
-        "refreshToken",
-        "refreshTokenExpiresIn",
-      ],
-      additionalProperties: false,
-      properties: authTokensSchema.properties,
+      $ref: "AuthTokens#",
+    },
+  },
+} as const;
+
+const currentUserSchema = {
+  $id: "CurrentUser",
+  type: "object",
+  required: ["id", "status", "createdAt", "identityProviders"],
+  additionalProperties: false,
+  properties: {
+    id: { type: "string" },
+    status: {
+      type: "string",
+      enum: ["anonymous", "registered", "disabled"],
+    },
+    createdAt: { type: "string" },
+    identityProviders: {
+      type: "array",
+      items: { type: "string", enum: ["google", "apple", "email"] },
     },
   },
 } as const;
 
 export const currentUserResponseSchema = {
+  $id: "CurrentUserResponse",
   type: "object",
   required: ["data"],
   additionalProperties: false,
   properties: {
-    data: {
-      type: "object",
-      required: ["id", "status", "createdAt", "identityProviders"],
-      additionalProperties: false,
-      properties: {
-        id: { type: "string" },
-        status: {
-          type: "string",
-          enum: ["anonymous", "registered", "disabled"],
-        },
-        createdAt: { type: "string" },
-        identityProviders: {
-          type: "array",
-          items: { type: "string", enum: ["google", "apple", "email"] },
-        },
-      },
-    },
+    data: { $ref: "CurrentUser#" },
   },
 } as const;
+
+export const authSchemaRefs = {
+  anonymousAuthBody: { $ref: "AnonymousAuthBody#" },
+  anonymousAuthResponse: { $ref: "AnonymousAuthResponse#" },
+  authErrorResponse: { $ref: "AuthErrorResponse#" },
+  currentUserResponse: { $ref: "CurrentUserResponse#" },
+  refreshAuthBody: { $ref: "RefreshAuthBody#" },
+  refreshAuthResponse: { $ref: "RefreshAuthResponse#" },
+} as const;
+
+const authSchemas = [
+  authErrorResponseSchema,
+  authUserSchema,
+  authTokensSchema,
+  anonymousAuthBodySchema,
+  refreshAuthBodySchema,
+  anonymousAuthResponseSchema,
+  refreshAuthResponseSchema,
+  currentUserSchema,
+  currentUserResponseSchema,
+] as const;
+
+export function registerAuthSchemas(app: FastifyInstance): void {
+  for (const schema of authSchemas) {
+    if (!app.getSchema(schema.$id)) {
+      app.addSchema(schema);
+    }
+  }
+}
