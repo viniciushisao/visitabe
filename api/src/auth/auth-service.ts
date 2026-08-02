@@ -63,6 +63,7 @@ export class AuthService {
 
     return {
       user,
+      sessionId: session.id,
       tokens: buildTokenResponse(
         accessToken.accessToken,
         accessToken.expiresIn,
@@ -148,6 +149,8 @@ export class AuthService {
     );
 
     return {
+      userId: session.userId,
+      sessionId: session.id,
       tokens: buildTokenResponse(
         accessToken.accessToken,
         accessToken.expiresIn,

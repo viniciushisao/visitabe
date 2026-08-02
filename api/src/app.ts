@@ -1,6 +1,7 @@
 import rateLimit from "@fastify/rate-limit";
 import fastify, {
   type FastifyInstance,
+  type FastifyRequest,
   type FastifyServerOptions,
 } from "fastify";
 
@@ -16,22 +17,31 @@ export type BuildAppOptions = FastifyServerOptions & {
 };
 
 export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
-  const { authService, tokenService, ...fastifyOptions } = options;
+  const { authService, tokenService, logger, ...fastifyOptions } = options;
 
   if ((authService && !tokenService) || (!authService && tokenService)) {
     throw new Error("authService and tokenService must be provided together.");
   }
 
   const app = fastify({
-    logger: {
+    logger: logger ?? {
       level: process.env.LOG_LEVEL ?? "info",
+      redact: {
+        paths: ["req.headers.authorization", "request.headers.authorization"],
+        censor: "[redacted]",
+      },
     },
     ...fastifyOptions,
   });
 
   app.setErrorHandler(
-    (error: Error & { validation?: unknown }, _request, reply) => {
+    (
+      error: Error & { statusCode?: number; validation?: unknown },
+      request,
+      reply,
+    ) => {
       if (error.validation) {
+        logAuthFailure(request, "INVALID_REQUEST");
         reply.code(400).send({
           error: {
             code: "INVALID_REQUEST",
@@ -41,7 +51,19 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
         return;
       }
 
+      if (error.statusCode === 429) {
+        logAuthFailure(request, "RATE_LIMIT_EXCEEDED");
+        reply.code(429).send({
+          error: {
+            code: "RATE_LIMIT_EXCEEDED",
+            message: "Too many requests.",
+          },
+        });
+        return;
+      }
+
       if (error instanceof AuthError) {
+        logAuthFailure(request, error.code);
         reply.code(statusCodeForAuthError(error)).send({
           error: {
             code: error.code,
@@ -51,6 +73,7 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
         return;
       }
 
+      logAuthFailure(request, "INTERNAL_ERROR");
       reply.code(500).send({
         error: {
           code: "INTERNAL_ERROR",
@@ -72,10 +95,31 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   return app;
 }
 
+function logAuthFailure(request: FastifyRequest, code: string): void {
+  if (!request.url.startsWith("/v1/auth/")) {
+    return;
+  }
+
+  request.log.warn(
+    {
+      authEvent: "auth.request.failed",
+      result: "failure",
+      requestId: request.id,
+      userId: request.user?.userId,
+      sessionId: request.user?.sessionId,
+      failureCode: code,
+      timestamp: new Date().toISOString(),
+    },
+    "Authentication event.",
+  );
+}
+
 function statusCodeForAuthError(error: AuthError): number {
   switch (error.code) {
     case "INVALID_REQUEST":
       return 400;
+    case "RATE_LIMIT_EXCEEDED":
+      return 429;
     case "INTERNAL_ERROR":
       return 500;
     default:

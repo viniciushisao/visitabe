@@ -1,4 +1,4 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 
 import { AuthController } from "./auth-controller.js";
 import {
@@ -11,6 +11,20 @@ import {
 } from "./auth-schemas.js";
 import type { AuthService } from "./auth-service.js";
 
+const anonymousAuthRateLimit = {
+  max: 10,
+  timeWindow: "1 minute",
+  groupId: "auth-anonymous",
+  onExceeded: logRateLimitExceeded,
+} as const;
+
+const refreshAuthRateLimit = {
+  max: 30,
+  timeWindow: "1 minute",
+  groupId: "auth-refresh",
+  onExceeded: logRateLimitExceeded,
+} as const;
+
 export async function registerAuthRoutes(
   app: FastifyInstance,
   authService: AuthService,
@@ -20,11 +34,15 @@ export async function registerAuthRoutes(
   app.post(
     "/v1/auth/anonymous",
     {
+      config: {
+        rateLimit: anonymousAuthRateLimit,
+      },
       schema: {
         body: anonymousAuthBodySchema,
         response: {
           201: anonymousAuthResponseSchema,
           400: authErrorResponseSchema,
+          429: authErrorResponseSchema,
           500: authErrorResponseSchema,
         },
       },
@@ -35,11 +53,15 @@ export async function registerAuthRoutes(
   app.post(
     "/v1/auth/refresh",
     {
+      config: {
+        rateLimit: refreshAuthRateLimit,
+      },
       schema: {
         body: refreshAuthBodySchema,
         response: {
           200: refreshAuthResponseSchema,
           401: authErrorResponseSchema,
+          429: authErrorResponseSchema,
           500: authErrorResponseSchema,
         },
       },
@@ -74,5 +96,18 @@ export async function registerAuthRoutes(
       },
     },
     controller.logoutSession,
+  );
+}
+
+function logRateLimitExceeded(request: FastifyRequest): void {
+  request.log.warn(
+    {
+      authEvent: "auth.rate_limit.exceeded",
+      result: "failure",
+      requestId: request.id,
+      failureCode: "RATE_LIMIT_EXCEEDED",
+      timestamp: new Date().toISOString(),
+    },
+    "Authentication event.",
   );
 }

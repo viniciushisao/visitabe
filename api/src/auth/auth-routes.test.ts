@@ -161,6 +161,72 @@ describe("auth routes", () => {
     await app.close();
   });
 
+  it("rate-limits anonymous account creation", async () => {
+    const { app } = buildTestApp();
+
+    for (let requestIndex = 0; requestIndex < 10; requestIndex += 1) {
+      const response = await app.inject({
+        method: "POST",
+        url: "/v1/auth/anonymous",
+        payload: {
+          installationId: "550e8400-e29b-41d4-a716-446655440000",
+          platform: "android",
+          appVersion: "1.0.0",
+        },
+      });
+
+      expect(response.statusCode).toBe(201);
+    }
+
+    const limitedResponse = await app.inject({
+      method: "POST",
+      url: "/v1/auth/anonymous",
+      payload: {
+        installationId: "550e8400-e29b-41d4-a716-446655440000",
+        platform: "android",
+        appVersion: "1.0.0",
+      },
+    });
+
+    expect(limitedResponse.statusCode).toBe(429);
+    expect(limitedResponse.json()).toMatchObject({
+      error: { code: "RATE_LIMIT_EXCEEDED" },
+    });
+
+    await app.close();
+  });
+
+  it("rate-limits refresh attempts", async () => {
+    const { app } = buildTestApp();
+
+    for (let requestIndex = 0; requestIndex < 30; requestIndex += 1) {
+      const response = await app.inject({
+        method: "POST",
+        url: "/v1/auth/refresh",
+        payload: {
+          refreshToken: "invalid-refresh-token",
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+    }
+
+    const limitedResponse = await app.inject({
+      method: "POST",
+      url: "/v1/auth/refresh",
+      payload: {
+        refreshToken: "invalid-refresh-token",
+      },
+    });
+
+    expect(limitedResponse.statusCode).toBe(429);
+    expect(limitedResponse.json()).toMatchObject({
+      error: { code: "RATE_LIMIT_EXCEEDED" },
+    });
+
+    await app.close();
+  });
+
   it("logs out the current session and rejects future refresh", async () => {
     const { app } = buildTestApp();
     const anonymousResponse = await app.inject({

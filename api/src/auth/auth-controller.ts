@@ -20,7 +20,20 @@ export class AuthController {
   ): Promise<void> => {
     const result = await this.#authService.createAnonymousSession(request.body);
 
-    reply.code(201).send({ data: result });
+    request.log.info(
+      authLogEvent("auth.anonymous.created", "success", request.id, {
+        userId: result.user.id,
+        sessionId: result.sessionId,
+      }),
+      "Authentication event.",
+    );
+
+    reply.code(201).send({
+      data: {
+        user: result.user,
+        tokens: result.tokens,
+      },
+    });
   };
 
   refreshSession = async (
@@ -29,6 +42,14 @@ export class AuthController {
   ): Promise<void> => {
     const result = await this.#authService.refreshSession(
       request.body.refreshToken,
+    );
+
+    request.log.info(
+      authLogEvent("auth.refresh.rotated", "success", request.id, {
+        userId: result.userId,
+        sessionId: result.sessionId,
+      }),
+      "Authentication event.",
     );
 
     reply.send({ data: result.tokens });
@@ -40,6 +61,14 @@ export class AuthController {
   ): Promise<void> => {
     const user = await this.#authService.getCurrentUser(request.user.userId);
 
+    request.log.info(
+      authLogEvent("auth.me.read", "success", request.id, {
+        userId: request.user.userId,
+        sessionId: request.user.sessionId,
+      }),
+      "Authentication event.",
+    );
+
     reply.send({ data: { ...user, createdAt: user.createdAt.toISOString() } });
   };
 
@@ -49,6 +78,30 @@ export class AuthController {
   ): Promise<void> => {
     await this.#authService.logoutSession(request.user.sessionId);
 
+    request.log.info(
+      authLogEvent("auth.logout.session", "success", request.id, {
+        userId: request.user.userId,
+        sessionId: request.user.sessionId,
+      }),
+      "Authentication event.",
+    );
+
     reply.code(204).send();
+  };
+}
+
+function authLogEvent(
+  eventType: string,
+  result: "success" | "failure",
+  requestId: string,
+  identifiers: { userId?: string; sessionId?: string } = {},
+): Record<string, string | undefined> {
+  return {
+    authEvent: eventType,
+    result,
+    requestId,
+    userId: identifiers.userId,
+    sessionId: identifiers.sessionId,
+    timestamp: new Date().toISOString(),
   };
 }

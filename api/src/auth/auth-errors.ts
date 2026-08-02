@@ -4,6 +4,7 @@ export type AuthErrorCode =
   | "INVALID_REFRESH_TOKEN"
   | "REFRESH_TOKEN_EXPIRED"
   | "SESSION_REVOKED"
+  | "RATE_LIMIT_EXCEEDED"
   | "INTERNAL_ERROR";
 
 const defaultMessages = {
@@ -12,6 +13,7 @@ const defaultMessages = {
   INVALID_REFRESH_TOKEN: "The session is no longer valid.",
   REFRESH_TOKEN_EXPIRED: "The session has expired.",
   SESSION_REVOKED: "The session has been revoked.",
+  RATE_LIMIT_EXCEEDED: "Too many requests.",
   INTERNAL_ERROR: "An internal error occurred.",
 } satisfies Record<AuthErrorCode, string>;
 

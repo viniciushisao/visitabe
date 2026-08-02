@@ -32,10 +32,13 @@ export type AuthTokenResponse = {
 
 export type AnonymousSessionResult = {
   user: PublicAuthUser;
+  sessionId: string;
   tokens: AuthTokenResponse;
 };
 
 export type RefreshSessionResult = {
+  userId: string;
+  sessionId: string;
   tokens: AuthTokenResponse;
 };
 

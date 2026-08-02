@@ -319,7 +319,9 @@ Acceptance checks:
 
 ## Phase 5 - Logging, Abuse Controls, And OpenAI Route Safety
 
-Add the minimum operational protections before connecting auth to OpenAI-backed product endpoints.
+Status: Done for the current API. OpenAI-backed route enforcement applies when those endpoints are introduced.
+
+Added the minimum operational protections before connecting auth to OpenAI-backed product endpoints.
 
 Tasks:
 
