@@ -241,7 +241,9 @@ Acceptance checks:
 
 ## Phase 3 - Auth Repository And Service
 
-Implement auth behavior as service methods that can be exercised directly and through HTTP tests.
+Status: Done.
+
+Implemented auth behavior as service methods that can be exercised directly and through HTTP tests.
 
 Tasks:
 
