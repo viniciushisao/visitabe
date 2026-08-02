@@ -6,3 +6,91 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum UserStatus {
+  anonymous
+  registered
+  disabled
+}
+
+enum IdentityProvider {
+  google
+  apple
+  email
+}
+
+enum AuthPlatform {
+  ios
+  android
+}
+
+model User {
+  id        String     @id
+  status    UserStatus @default(anonymous)
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  identities AuthIdentity[]
+  sessions   AuthSession[]
+
+  @@map("users")
+}
+
+model AuthIdentity {
+  id              String           @id
+  userId          String           @map("user_id")
+  provider        IdentityProvider
+  providerSubject String           @map("provider_subject")
+  email           String?
+  emailVerified   Boolean?         @map("email_verified")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerSubject])
+  @@index([userId])
+  @@map("auth_identities")
+}
+
+model AuthSession {
+  id             String       @id
+  userId         String       @map("user_id")
+  installationId String       @map("installation_id")
+  platform       AuthPlatform
+  appVersion     String       @map("app_version")
+  tokenFamilyId  String       @map("token_family_id")
+  expiresAt      DateTime     @map("expires_at")
+  lastUsedAt     DateTime?    @map("last_used_at")
+  revokedAt      DateTime?    @map("revoked_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokens AuthRefreshToken[]
+
+  @@index([userId])
+  @@index([tokenFamilyId])
+  @@index([expiresAt])
+  @@map("auth_sessions")
+}
+
+model AuthRefreshToken {
+  id                String    @id
+  sessionId         String    @map("session_id")
+  tokenFamilyId     String    @map("token_family_id")
+  refreshTokenHash  String    @unique @map("refresh_token_hash")
+  expiresAt         DateTime  @map("expires_at")
+  usedAt            DateTime? @map("used_at")
+  revokedAt         DateTime? @map("revoked_at")
+  replacedByTokenId String?   @map("replaced_by_token_id")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  session AuthSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([tokenFamilyId])
+  @@index([expiresAt])
+  @@map("auth_refresh_tokens")
+}

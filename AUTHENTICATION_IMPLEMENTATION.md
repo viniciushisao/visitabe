@@ -110,7 +110,9 @@ Acceptance checks:
 
 ## Phase 1 - Database Foundation
 
-Create the persistent model that makes anonymous users, sessions, logout, and future identity linking possible.
+Status: Done in code. Migration apply is pending a local `DATABASE_URL`.
+
+Created the persistent model that makes anonymous users, sessions, logout, and future identity linking possible.
 
 Tasks:
 
