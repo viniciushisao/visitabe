@@ -17,12 +17,26 @@ const authConfig = {
 } satisfies ApiEnv["auth"];
 
 describe("buildApp", () => {
-  it("creates a Fastify app without registering endpoints yet", async () => {
+  it("does not register a root endpoint", async () => {
     const app = buildApp({ logger: false });
 
     await app.ready();
 
     expect(app.hasRoute({ method: "GET", url: "/" })).toBe(false);
+
+    await app.close();
+  });
+
+  it("serves a health endpoint", async () => {
+    const app = buildApp({ logger: false });
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/health",
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ status: "ok" });
 
     await app.close();
   });

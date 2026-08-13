@@ -101,6 +101,26 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
     },
   );
 
+  app.get(
+    "/health",
+    {
+      schema: {
+        summary: "Check API health",
+        response: {
+          200: {
+            type: "object",
+            required: ["status"],
+            additionalProperties: false,
+            properties: {
+              status: { type: "string", enum: ["ok"] },
+            },
+          },
+        },
+      },
+    },
+    async () => ({ status: "ok" }),
+  );
+
   void app.register(rateLimit, { global: false });
   registerOpenApi(app);
 
