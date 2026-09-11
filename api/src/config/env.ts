@@ -8,6 +8,13 @@ export type ApiEnv = {
   web: {
     corsOrigins: string[];
   };
+  openApi: {
+    enabled: boolean;
+    basicAuth?: {
+      username: string;
+      password: string;
+    };
+  };
   auth: {
     issuer: string;
     audience: string;
@@ -29,6 +36,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): ApiEnv {
   );
   const jwtSecret = required(source, "JWT_SECRET");
   const refreshTokenPepper = required(source, "AUTH_REFRESH_TOKEN_PEPPER");
+  const openApi = parseOpenApiConfig(source, nodeEnv);
 
   if (nodeEnv !== "development") {
     requireHighEntropySecret("JWT_SECRET", jwtSecret);
@@ -49,6 +57,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): ApiEnv {
     web: {
       corsOrigins: webCorsOrigins,
     },
+    openApi,
     auth: {
       issuer: parseIssuer(required(source, "AUTH_ISSUER")),
       audience: required(source, "AUTH_AUDIENCE"),
@@ -65,6 +74,68 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): ApiEnv {
       refreshTokenPepper,
     },
   };
+}
+
+function parseOpenApiConfig(
+  source: NodeJS.ProcessEnv,
+  nodeEnv: string,
+): ApiEnv["openApi"] {
+  const enabled = parseBoolean(
+    "OPENAPI_ENABLED",
+    source.OPENAPI_ENABLED,
+    nodeEnv === "development",
+  );
+
+  if (!enabled) {
+    return { enabled };
+  }
+
+  const username = source.OPENAPI_BASIC_AUTH_USERNAME?.trim();
+  const password = source.OPENAPI_BASIC_AUTH_PASSWORD?.trim();
+
+  if (nodeEnv === "development" && !username && !password) {
+    return { enabled };
+  }
+
+  if (!username || !password) {
+    throw new Error(
+      "OPENAPI_BASIC_AUTH_USERNAME and OPENAPI_BASIC_AUTH_PASSWORD are required when OpenAPI is enabled outside development.",
+    );
+  }
+
+  if (nodeEnv !== "development") {
+    requireHighEntropySecret("OPENAPI_BASIC_AUTH_PASSWORD", password);
+  }
+
+  return {
+    enabled,
+    basicAuth: {
+      username,
+      password,
+    },
+  };
+}
+
+function parseBoolean(
+  name: string,
+  value: string | undefined,
+  defaultValue: boolean,
+): boolean {
+  if (value === undefined || value.trim() === "") {
+    return defaultValue;
+  }
+
+  const normalized = value.trim().toLowerCase();
+
+  if (normalized === "true") {
+    return true;
+  }
+
+  if (normalized === "false") {
+    return false;
+  }
+
+  throw new Error(`${name} must be true or false.`);
 }
 
 function required(source: NodeJS.ProcessEnv, name: string): string {

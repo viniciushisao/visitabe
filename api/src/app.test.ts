@@ -132,13 +132,100 @@ describe("buildApp", () => {
 
     await app.close();
   });
+
+  it("does not serve OpenAPI routes when disabled", async () => {
+    const app = buildDocumentedAuthApp({ openApi: { enabled: false } });
+
+    const openApiResponse = await app.inject({
+      method: "GET",
+      url: "/openapi.json",
+    });
+    const docsResponse = await app.inject({
+      method: "GET",
+      url: "/docs",
+    });
+
+    expect(openApiResponse.statusCode).toBe(404);
+    expect(docsResponse.statusCode).toBe(404);
+
+    await app.close();
+  });
+
+  it("requires basic auth for protected OpenAPI routes", async () => {
+    const app = buildDocumentedAuthApp({
+      openApi: {
+        enabled: true,
+        basicAuth: {
+          username: "docs",
+          password: "test-docs-password",
+        },
+      },
+    });
+
+    const unauthorizedResponse = await app.inject({
+      method: "GET",
+      url: "/openapi.json",
+    });
+    const authorizedResponse = await app.inject({
+      method: "GET",
+      url: "/openapi.json",
+      headers: {
+        authorization: basicAuth("docs", "test-docs-password"),
+      },
+    });
+
+    expect(unauthorizedResponse.statusCode).toBe(401);
+    expect(unauthorizedResponse.headers["www-authenticate"]).toBe(
+      'Basic realm="Visita API Docs"',
+    );
+    expect(authorizedResponse.statusCode).toBe(200);
+    expect(authorizedResponse.json<OpenApiDocument>().openapi).toBe("3.0.3");
+
+    await app.close();
+  });
+
+  it("requires basic auth for protected Swagger UI", async () => {
+    const app = buildDocumentedAuthApp({
+      openApi: {
+        enabled: true,
+        basicAuth: {
+          username: "docs",
+          password: "test-docs-password",
+        },
+      },
+    });
+
+    const unauthorizedResponse = await app.inject({
+      method: "GET",
+      url: "/docs",
+    });
+    const authorizedResponse = await app.inject({
+      method: "GET",
+      url: "/docs",
+      headers: {
+        authorization: basicAuth("docs", "test-docs-password"),
+      },
+    });
+
+    expect(unauthorizedResponse.statusCode).toBe(401);
+    expect(authorizedResponse.statusCode).toBe(200);
+    expect(authorizedResponse.headers["content-type"]).toContain("text/html");
+
+    await app.close();
+  });
 });
 
-function buildDocumentedAuthApp(): ReturnType<typeof buildApp> {
+function buildDocumentedAuthApp(
+  options: Parameters<typeof buildApp>[0] = {},
+): ReturnType<typeof buildApp> {
   const tokenService = new TokenService(authConfig);
   const authService = new AuthService(unusedAuthRepository, tokenService);
 
-  return buildApp({ logger: false, authService, tokenService });
+  return buildApp({ logger: false, authService, tokenService, ...options });
+}
+
+function basicAuth(username: string, password: string): string {
+  return `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
 }
 
 const unusedAuthRepository: AuthRepository = {

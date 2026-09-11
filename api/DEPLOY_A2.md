@@ -94,6 +94,7 @@ HOST=127.0.0.1
 PORT=3000
 LOG_LEVEL=info
 WEB_CORS_ORIGINS=https://your-frontend-domain.com
+OPENAPI_ENABLED=false
 
 AUTH_ISSUER=https://api.your-domain.com
 AUTH_AUDIENCE=visita-web
@@ -118,6 +119,16 @@ Use one value for `JWT_SECRET` and the other for `AUTH_REFRESH_TOKEN_PEPPER`.
 
 If cPanel injects its own `PORT`, keep this app code as-is. It already reads `process.env.PORT`. If cPanel does not inject `PORT`, make sure the `.env` value matches the port configured in the Node.js app screen.
 
+Keep `OPENAPI_ENABLED=false` in production unless you deliberately need to inspect the docs. To temporarily expose protected docs, set:
+
+```bash
+OPENAPI_ENABLED=true
+OPENAPI_BASIC_AUTH_USERNAME=docs
+OPENAPI_BASIC_AUTH_PASSWORD=replace-with-a-different-long-random-secret
+```
+
+Then restart the app and open `/docs`; the browser will prompt for the username and password. Turn `OPENAPI_ENABLED` back to `false` after you are done.
+
 ## 6. Install, build, and migrate
 
 SSH into A2, enter the Node virtual environment, then run:
@@ -139,16 +150,18 @@ In cPanel, click **Restart** for the Node.js app.
 Then test:
 
 ```bash
-curl https://api.your-domain.com/openapi.json
+curl https://api.your-domain.com/health
+curl -i https://api.your-domain.com/docs
 ```
 
 If your app URL is under a path such as `https://your-domain.com/api`, test:
 
 ```bash
-curl https://your-domain.com/api/openapi.json
+curl https://your-domain.com/api/health
+curl -i https://your-domain.com/api/docs
 ```
 
-If the endpoint returns JSON, the backend is connected and running.
+The health endpoint should return `{"status":"ok"}`. In the recommended production configuration, `/docs` should return `404`.
 
 ## Common fixes
 

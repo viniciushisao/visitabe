@@ -15,6 +15,7 @@ const authService = new AuthService(authRepository, tokenService);
 const app = buildApp({
   authService,
   tokenService,
+  openApi: env.openApi,
   webCorsOrigins: env.web.corsOrigins,
 });
 
